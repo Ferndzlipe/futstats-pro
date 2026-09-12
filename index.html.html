@@ -53,10 +53,11 @@
                     <p class="text-xs text-slate-400">Análise Preditiva & Estatísticas Avançadas (Fuso: Brasília - UTC-3)</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-4">
-                <div class="hidden sm:flex items-center space-x-2 bg-darkbase-900 px-3 py-1.5 rounded-lg border border-darkbase-700 text-xs text-slate-300">
-                    <span class="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
-                    <span>Atualizado (Últimas 24h+)</span>
+            <div class="flex items-center space-x-3">
+                <div class="hidden lg:flex items-center space-x-2 bg-darkbase-900 px-3 py-1.5 rounded-lg border border-darkbase-700">
+                    <i class="fa-solid fa-key text-brand-400 text-xs"></i>
+                    <input type="password" id="api-token-input" placeholder="Sua Chave de API..." class="bg-transparent text-xs text-slate-200 focus:outline-none w-32" onchange="saveApiKey(this.value)">
+                    <button onclick="loadRealApiMatches()" class="bg-brand-600 hover:bg-brand-500 text-white text-[11px] px-2 py-1 rounded transition font-medium">Conectar API</button>
                 </div>
                 <button onclick="resetView()" class="bg-darkbase-700 hover:bg-darkbase-600 px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 border border-darkbase-600">
                     <i class="fa-solid fa-rotate-right"></i>
@@ -116,7 +117,7 @@
 
             <!-- Match Header Card -->
             <div class="bg-gradient-to-r from-darkbase-800 via-darkbase-800 to-darkbase-700 rounded-2xl p-6 border border-darkbase-700 shadow-2xl relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 opacity-5 pointer-events-none">
+                <div class="absolute -right-10 -bottom-10 opacity-5 text-9k pointer-events-none">
                     <i class="fa-solid fa-trophy text-white text-9xl"></i>
                 </div>
                 <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
@@ -146,11 +147,11 @@
             </div>
 
             <!-- TAB NAVIGATION FOR REPORTS -->
-            <div class="flex space-x-2 border-b border-darkbase-700 pb-3 overflow-x-auto">
-                <button onclick="switchTab('averages')" id="tab-btn-averages" class="px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition whitespace-nowrap">Médias (Últimos 10 Jogos)</button>
-                <button onclick="switchTab('predictions')" id="tab-btn-predictions" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap">Relatório Preditivo & Probabilidades</button>
-                <button onclick="switchTab('scores')" id="tab-btn-scores" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap">Matriz de Placares HT / FT</button>
-                <button onclick="switchTab('history')" id="tab-btn-history" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap">Histórico 10 Jogos</button>
+            <div class="flex space-x-2 border-b border-darkbase-700 pb-3">
+                <button onclick="switchTab('averages')" id="tab-btn-averages" class="px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition">Médias (Últimos 10 Jogos)</button>
+                <button onclick="switchTab('predictions')" id="tab-btn-predictions" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition">Relatório Preditivo & Probabilidades</button>
+                <button onclick="switchTab('scores')" id="tab-btn-scores" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition">Matriz de Placares HT / FT</button>
+                <button onclick="switchTab('history')" id="tab-btn-history" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition">Histórico 10 Jogos</button>
             </div>
 
             <!-- TAB 1: VERTICAL AVERAGES TABLE & PLAYERS -->
@@ -699,11 +700,14 @@
             
             let list = [];
             for (let i = 0; i < 10; i++) {
+                const res = results[i];
+                const score = scoresPool[i];
+                const opp = opponents[i];
                 list.push({
                     round: `Rodada ${10 - i}`,
-                    opponent: opponents[i],
-                    result: results[i],
-                    score: scoresPool[i],
+                    opponent: opp,
+                    result: res,
+                    score: score,
                     location: i % 2 === 0 ? "Casa" : "Fora"
                 });
             }
@@ -717,8 +721,94 @@
         window.onload = function() {
             renderDateTabs();
             renderLeagueChips();
+            const savedKey = localStorage.getItem('futstats_api_key');
+            if (savedKey) {
+                document.getElementById('api-token-input').value = savedKey;
+            }
             renderMatches();
         };
+
+        function saveApiKey(key) {
+            localStorage.setItem('futstats_api_key', key.trim());
+        }
+
+        async function loadRealApiMatches() {
+            const token = document.getElementById('api-token-input').value.trim() || localStorage.getItem('futstats_api_key');
+            if (!token) {
+                return;
+            }
+            
+            const grid = document.getElementById('matches-grid');
+            grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl text-brand-500 mb-2"></i><p>Conectando à API e buscando partidas reais...</p></div>`;
+
+            try {
+                const response = await fetch(`https://api.football-data.org/v4/matches?date=${currentDate}`, {
+                    headers: { 'X-Auth-Token': token }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erro na resposta da API');
+                }
+                
+                const data = await response.json();
+                if (data.matches && data.matches.length > 0) {
+                    matchesDatabase[currentDate] = data.matches.map(m => ({
+                        id: String(m.id),
+                        league: m.competition.name,
+                        homeTeam: m.homeTeam.name,
+                        awayTeam: m.awayTeam.name,
+                        homeLogo: m.homeTeam.crest || '⚽',
+                        awayLogo: m.awayTeam.crest || '🛡️',
+                        stadium: m.venue || 'Estádio Principal',
+                        time: new Date(m.utcDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
+                        stats: {
+                            goals: { home: 1.8, away: 1.3 },
+                            goalsHt: { home: 0.9, away: 0.5 },
+                            corners: { home: 6.4, away: 5.1 },
+                            cornersHt: { home: 3.2, away: 2.4 },
+                            cards: { home: 2.3, away: 2.8 },
+                            cardsHt: { home: 0.9, away: 1.2 },
+                            shotsOnTargetHt: { home: 3.5, away: 2.6 },
+                            totalShotsHt: { home: 7.2, away: 5.8 }
+                        },
+                        players: {
+                            mostShots: { name: `${m.homeTeam.name} (Destaque)`, detail: "Média de finalizações alta" },
+                            mostTackles: { name: "Principal Defensor", detail: "Alto índice de desarmes" },
+                            mostFouls: { name: "Meio-campista", detail: "Faltas táticas frequentes" }
+                        },
+                        probabilities: {
+                            winHome: 50,
+                            draw: 25,
+                            winAway: 25,
+                            doubleChance1X: 75,
+                            doubleChanceX2: 50,
+                            btts: 55,
+                            mostShotsTeam: `${m.homeTeam.name} (55%)`,
+                            mostCornersTeam: `${m.homeTeam.name} (52%)`,
+                            mostCardsTeam: `${m.awayTeam.name} (51%)`
+                        },
+                        scoresHt: [
+                            { score: "1 - 0", prob: "35%" },
+                            { score: "0 - 0", prob: "30%" },
+                            { score: "0 - 1", prob: "18%" }
+                        ],
+                        scoresFt: [
+                            { score: "1 - 1", prob: "24%" },
+                            { score: "2 - 1", prob: "22%" },
+                            { score: "1 - 0", prob: "20%" }
+                        ],
+                        homeLast10: generateLast10(m.homeTeam.name, true),
+                        awayLast10: generateLast10(m.awayTeam.name, false)
+                    }));
+                    renderMatches();
+                } else {
+                    renderMatches();
+                }
+            } catch (err) {
+                console.error(err);
+                renderMatches();
+            }
+        }
 
         function resetView() {
             activeMatch = null;
@@ -1060,10 +1150,10 @@
                 const btn = document.getElementById(`tab-btn-${t}`);
                 if (t === tabName) {
                     el.classList.remove('hidden');
-                    btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition whitespace-nowrap";
+                    btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition";
                 } else {
                     el.classList.add('hidden');
-                    btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap";
+                    btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition";
                 }
             });
         }
