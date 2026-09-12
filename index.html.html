@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutStats Pro - Sistema Avançado de Estatísticas e Probabilidades</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        },
+                        darkbase: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                            600: '#475569'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-darkbase-900 text-slate-100 min-h-screen flex flex-col antialiased">
+
+    <header class="bg-darkbase-800 border-b border-darkbase-700 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-brand-600 to-emerald-400 p-2.5 rounded-xl text-white shadow-md shadow-brand-600/20">
+                    <i class="fa-solid fa-futbol text-xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">FutStats Pro</h1>
+                    <p class="text-xs text-slate-400">Análise Preditiva & Estatísticas Avançadas (Fuso: Brasília - UTC-3)</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="hidden sm:flex items-center space-x-2 bg-darkbase-900 px-3 py-1.5 rounded-lg border border-darkbase-700 text-xs text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
+                    <span>Atualizado (Últimas 24h+)</span>
+                </div>
+                <button onclick="resetView()" class="bg-darkbase-700 hover:bg-darkbase-600 px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 border border-darkbase-600">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Início</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Controls Section: Date & League Filter -->
+        <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-base font-semibold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-regular fa-calendar-days text-brand-500"></i>
+                        <span>Selecione a Data dos Jogos</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Explore partidas passadas e futuras com base no horário de Brasília.</p>
+                </div>
+                <div class="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0" id="date-tabs">
+                    <!-- Date tabs populated by JS -->
+                </div>
+            </div>
+
+            <!-- League Category Filter -->
+            <div class="border-t border-darkbase-700 pt-4">
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Filtrar por Liga / Campeonato:</label>
+                <div class="flex flex-wrap gap-2" id="league-chips">
+                    <!-- League chips populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Matches View Container -->
+        <div id="matches-section" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-shield-halved text-brand-500"></i>
+                    <span id="matches-section-title">Partidas Disponíveis</span>
+                </h3>
+                <span id="match-count-badge" class="bg-darkbase-700 text-slate-300 text-xs px-2.5 py-1 rounded-full font-medium">0 jogos</span>
+            </div>
+
+            <div id="matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Matches cards rendered here -->
+            </div>
+        </div>
+
+        <!-- Match Detail & Statistics Report View (Hidden by default) -->
+        <div id="match-detail-section" class="hidden space-y-6">
+            <button onclick="backToMatches()" class="inline-flex items-center space-x-2 text-xs font-semibold bg-darkbase-800 hover:bg-darkbase-700 text-slate-200 px-3.5 py-2 rounded-xl border border-darkbase-700 transition shadow">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Voltar para Lista de Jogos</span>
+            </button>
+
+            <!-- Match Header Card -->
+            <div class="bg-gradient-to-r from-darkbase-800 via-darkbase-800 to-darkbase-700 rounded-2xl p-6 border border-darkbase-700 shadow-2xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-5 pointer-events-none">
+                    <i class="fa-solid fa-trophy text-white text-9xl"></i>
+                </div>
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                    <div class="text-center md:text-left flex-1">
+                        <span id="detail-league-name" class="inline-block px-3 py-1 bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-semibold rounded-full mb-3">Liga</span>
+                        <div class="flex items-center justify-center md:justify-start space-x-4">
+                            <div class="text-center">
+                                <div class="w-16 h-16 rounded-2xl bg-darkbase-900 border border-darkbase-700 flex items-center justify-center text-2xl shadow-inner mb-1 mx-auto" id="home-logo">⚽</div>
+                                <h3 id="detail-home-team" class="font-bold text-lg text-white">Time Casa</h3>
+                            </div>
+                            <div class="px-4 text-center">
+                                <span class="text-xs uppercase tracking-widest text-slate-400 font-bold block">VS</span>
+                                <span id="detail-match-time" class="text-sm font-semibold text-brand-400 mt-1 block">--:-- BRT</span>
+                            </div>
+                            <div class="text-center">
+                                <div class="w-16 h-16 rounded-2xl bg-darkbase-900 border border-darkbase-700 flex items-center justify-center text-2xl shadow-inner mb-1 mx-auto" id="away-logo">🛡️</div>
+                                <h3 id="detail-away-team" class="font-bold text-lg text-white">Time Fora</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-darkbase-900/80 backdrop-blur p-4 rounded-xl border border-darkbase-700 text-center md:text-right min-w-[220px]">
+                        <p class="text-xs text-slate-400 font-medium">Estádio / Local</p>
+                        <p id="detail-stadium" class="text-sm font-semibold text-slate-200 mt-0.5">Estádio Principal</p>
+                        <p class="text-xs text-brand-400 mt-2 font-medium"><i class="fa-regular fa-clock"></i> Baseado nos últimos 10 jogos</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB NAVIGATION FOR REPORTS -->
+            <div class="flex space-x-2 border-b border-darkbase-700 pb-3 overflow-x-auto">
+                <button onclick="switchTab('averages')" id="tab-btn-averages" class="px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition whitespace-nowrap">Médias (Últimos 10 Jogos)</button>
+                <button onclick="switchTab('predictions')" id="tab-btn-predictions" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap">Relatório Preditivo & Probabilidades</button>
+                <button onclick="switchTab('scores')" id="tab-btn-scores" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap">Matriz de Placares HT / FT</button>
+                <button onclick="switchTab('history')" id="tab-btn-history" class="px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap">Histórico 10 Jogos</button>
+            </div>
+
+            <!-- TAB 1: VERTICAL AVERAGES TABLE & PLAYERS -->
+            <div id="tab-averages" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Vertical Comparative Table (2 cols) -->
+                    <div class="lg:col-span-2 bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-4">
+                        <div class="flex items-center justify-between border-b border-darkbase-700 pb-3">
+                            <h4 class="font-bold text-white text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-table-columns text-brand-500"></i>
+                                <span>Tabela Vertical de Médias (Base: Últimos 10 Jogos)</span>
+                            </h4>
+                            <span class="text-xs text-slate-400 font-medium">Média por Partida</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead>
+                                    <tr class="border-b border-darkbase-700 text-slate-400 uppercase tracking-wider">
+                                        <th class="py-3 px-3 font-semibold" id="table-home-name">Casa</th>
+                                        <th class="py-3 px-3 font-semibold text-center">Estatística / Métrica</th>
+                                        <th class="py-3 px-3 font-semibold text-right" id="table-away-name">Fora</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-darkbase-700/50" id="vertical-averages-tbody">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Player Tendency Highlights (1 col) -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-4">
+                        <div class="border-b border-darkbase-700 pb-3">
+                            <h4 class="font-bold text-white text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-user-ninja text-brand-500"></i>
+                                <span>Jogadores em Tendência</span>
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-0.5">Destaques individuais para o confronto</p>
+                        </div>
+                        <div class="space-y-3.5" id="player-tendencies-container">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: PREDICTIVE REPORT & PROBABILITIES -->
+            <div id="tab-predictions" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Win / Double Chance Probability -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-3">
+                        <div class="flex items-center space-x-2 text-brand-400 font-bold text-sm">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>Probabilidade 1X2 & Dupla Chance</span>
+                        </div>
+                        <div class="space-y-2.5 pt-2" id="prob-1x2-container">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Both Teams To Score -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-3">
+                        <div class="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                            <i class="fa-solid fa-bullseye"></i>
+                            <span>Ambas Equipes Marcam (BTTS)</span>
+                        </div>
+                        <div class="pt-4 flex flex-col items-center justify-center text-center space-y-3" id="btts-container">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Match Trends (Most Shots, Corners, Cards) -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-3">
+                        <div class="flex items-center space-x-2 text-amber-400 font-bold text-sm">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>Tendências de Dinâmica de Jogo</span>
+                        </div>
+                        <div class="space-y-3 pt-2" id="match-dynamics-container">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: EXACT SCORES MATRIX HT / FT -->
+            <div id="tab-scores" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- HT Score Matrix -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-4">
+                        <div class="border-b border-darkbase-700 pb-3 flex items-center justify-between">
+                            <h4 class="font-bold text-white text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-clock text-brand-500"></i>
+                                <span>Probabilidades de Placares no Intervalo (HT)</span>
+                            </h4>
+                            <span class="text-xs text-slate-400 font-medium">Top 5 Placares</span>
+                        </div>
+                        <div class="space-y-3" id="ht-scores-list">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- FT Score Matrix -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-4">
+                        <div class="border-b border-darkbase-700 pb-3 flex items-center justify-between">
+                            <h4 class="font-bold text-white text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-flag-checkered text-brand-500"></i>
+                                <span>Probabilidades de Placares Finais (FT)</span>
+                            </h4>
+                            <span class="text-xs text-slate-400 font-medium">Top 5 Placares</span>
+                        </div>
+                        <div class="space-y-3" id="ft-scores-list">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: LAST 10 MATCHES HISTORY -->
+            <div id="tab-history" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Home Team Last 10 -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-4">
+                        <h4 class="font-bold text-white text-sm flex items-center space-x-2 border-b border-darkbase-700 pb-3">
+                            <i class="fa-solid fa-history text-brand-500"></i>
+                            <span id="history-home-title">Últimos 10 Jogos - Casa</span>
+                        </h4>
+                        <div class="space-y-2 max-h-[500px] overflow-y-auto pr-2" id="home-last-10-list">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Away Team Last 10 -->
+                    <div class="bg-darkbase-800 rounded-2xl p-5 border border-darkbase-700 shadow-xl space-y-4">
+                        <h4 class="font-bold text-white text-sm flex items-center space-x-2 border-b border-darkbase-700 pb-3">
+                            <i class="fa-solid fa-history text-brand-500"></i>
+                            <span id="history-away-title">Últimos 10 Jogos - Fora</span>
+                        </h4>
+                        <div class="space-y-2 max-h-[500px] overflow-y-auto pr-2" id="away-last-10-list">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-darkbase-800 border-t border-darkbase-700 py-6 mt-12 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p>FutStats Pro &copy; 2026. Sistema de Estatísticas de Futebol em Tempo Real (Fuso Horário Brasília - UTC-3).</p>
+            <p class="text-slate-500">Abrangência: Ligas Sul-Americanas, MLS, Liga MX, Principais Ligas Europeias, Liga Saudita e Liga Egípcia.</p>
+        </div>
+    </footer>
+
+    <script>
+        const leaguesData = {
+            "Brasileirão Série A": { region: "América do Sul", icon: "🇧🇷" },
+            "Liga Profesional Argentina": { region: "América do Sul", icon: "🇦🇷" },
+            "MLS": { region: "América do Norte", icon: "🇺🇸" },
+            "Liga MX México": { region: "América do Norte", icon: "🇲🇽" },
+            "Premier League": { region: "Europa", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            "La Liga": { region: "Europa", icon: "🇪🇸" },
+            "Serie A": { region: "Europa", icon: "🇮🇹" },
+            "Bundesliga": { region: "Europa", icon: "🇩🇪" },
+            "Saudi Pro League": { region: "Ásia / Oriente Médio", icon: "🇸🇦" },
+            "Egyptian Premier League": { region: "África", icon: "🇪🇬" }
+        };
+
+        const matchesDatabase = {
+            "2026-09-11": [
+                {
+                    id: "m1",
+                    league: "Brasileirão Série A",
+                    homeTeam: "Flamengo",
+                    awayTeam: "Atlético-MG",
+                    homeLogo: "🔴⚫",
+                    awayLogo: "⚪⚫",
+                    stadium: "Maracanã, Rio de Janeiro",
+                    time: "20:30",
+                    stats: {
+                        goals: { home: 1.8, away: 1.3 },
+                        goalsHt: { home: 0.9, away: 0.5 },
+                        corners: { home: 6.4, away: 5.1 },
+                        cornersHt: { home: 3.2, away: 2.4 },
+                        cards: { home: 2.3, away: 2.8 },
+                        cardsHt: { home: 0.9, away: 1.2 },
+                        shotsOnTargetHt: { home: 3.5, away: 2.6 },
+                        totalShotsHt: { home: 7.2, away: 5.8 }
+                    },
+                    players: {
+                        mostShots: { name: "Pedro (Flamengo)", detail: "Média de 2.4 chutes à gol/jogo" },
+                        mostTackles: { name: "Allan (Flamengo)", detail: "Média de 3.8 desarmes/jogo" },
+                        mostFouls: { name: "Battaglia (Atlético-MG)", detail: "Média de 2.7 faltas cometidas/jogo" }
+                    },
+                    probabilities: {
+                        winHome: 58,
+                        draw: 24,
+                        winAway: 18,
+                        doubleChance1X: 82,
+                        doubleChanceX2: 42,
+                        btts: 56,
+                        mostShotsTeam: "Flamengo (64%)",
+                        mostCornersTeam: "Flamengo (59%)",
+                        mostCardsTeam: "Atlético-MG (55%)"
+                    },
+                    scoresHt: [
+                        { score: "1 - 0", prob: "36%" },
+                        { score: "0 - 0", prob: "28%" },
+                        { score: "0 - 1", prob: "16%" },
+                        { score: "1 - 1", prob: "12%" },
+                        { score: "2 - 0", prob: "8%" }
+                    ],
+                    scoresFt: [
+                        { score: "2 - 1", prob: "24%" },
+                        { score: "1 - 0", prob: "20%" },
+                        { score: "1 - 1", prob: "18%" },
+                        { score: "2 - 0", prob: "15%" },
+                        { score: "3 - 1", prob: "10%" }
+                    ],
+                    homeLast10: generateLast10("Flamengo", true),
+                    awayLast10: generateLast10("Atlético-MG", false)
+                },
+                {
+                    id: "m2",
+                    league: "Premier League",
+                    homeTeam: "Arsenal",
+                    awayTeam: "Chelsea",
+                    homeLogo: "🔴⚪",
+                    awayLogo: "🔵",
+                    stadium: "Emirates Stadium, Londres",
+                    time: "16:00",
+                    stats: {
+                        goals: { home: 2.1, away: 1.5 },
+                        goalsHt: { home: 1.0, away: 0.7 },
+                        corners: { home: 7.0, away: 5.5 },
+                        cornersHt: { home: 3.8, away: 2.5 },
+                        cards: { home: 1.8, away: 2.4 },
+                        cardsHt: { home: 0.6, away: 1.0 },
+                        shotsOnTargetHt: { home: 4.1, away: 3.0 },
+                        totalShotsHt: { home: 8.5, away: 6.2 }
+                    },
+                    players: {
+                        mostShots: { name: "Bukayo Saka (Arsenal)", detail: "Média de 2.8 chutes à gol/jogo" },
+                        mostTackles: { name: "Declan Rice (Arsenal)", detail: "Média de 4.1 desarmes/jogo" },
+                        mostFouls: { name: "Moisés Caicedo (Chelsea)", detail: "Média de 2.9 faltas cometidas/jogo" }
+                    },
+                    probabilities: {
+                        winHome: 62,
+                        draw: 22,
+                        winAway: 16,
+                        doubleChance1X: 84,
+                        doubleChanceX2: 38,
+                        btts: 60,
+                        mostShotsTeam: "Arsenal (68%)",
+                        mostCornersTeam: "Arsenal (65%)",
+                        mostCardsTeam: "Chelsea (58%)"
+                    },
+                    scoresHt: [
+                        { score: "1 - 0", prob: "38%" },
+                        { score: "0 - 0", prob: "25%" },
+                        { score: "1 - 1", prob: "15%" },
+                        { score: "0 - 1", prob: "12%" },
+                        { score: "2 - 0", prob: "10%" }
+                    ],
+                    scoresFt: [
+                        { score: "2 - 1", prob: "26%" },
+                        { score: "2 - 0", prob: "22%" },
+                        { score: "1 - 1", prob: "17%" },
+                        { score: "3 - 1", prob: "14%" },
+                        { score: "1 - 0", prob: "11%" }
+                    ],
+                    homeLast10: generateLast10("Arsenal", true),
+                    awayLast10: generateLast10("Chelsea", false)
+                }
+            ],
+            "2026-09-12": [
+                {
+                    id: "m3",
+                    league: "Brasileirão Série A",
+                    homeTeam: "Palmeiras",
+                    awayTeam: "Corinthians",
+                    homeLogo: "🟢",
+                    awayLogo: "⚫⚪",
+                    stadium: "Allianz Parque, São Paulo",
+                    time: "18:30",
+                    stats: {
+                        goals: { home: 1.9, away: 1.2 },
+                        goalsHt: { home: 0.8, away: 0.5 },
+                        corners: { home: 6.2, away: 4.8 },
+                        cornersHt: { home: 3.1, away: 2.1 },
+                        cards: { home: 2.5, away: 3.2 },
+                        cardsHt: { home: 1.1, away: 1.4 },
+                        shotsOnTargetHt: { home: 3.8, away: 2.4 },
+                        totalShotsHt: { home: 7.9, away: 5.1 }
+                    },
+                    players: {
+                        mostShots: { name: "Flaco López (Palmeiras)", detail: "Média de 2.2 chutes à gol/jogo" },
+                        mostTackles: { name: "Aníbal Moreno (Palmeiras)", detail: "Média de 4.2 desarmes/jogo" },
+                        mostFouls: { name: "Raniele (Corinthians)", detail: "Média de 3.1 faltas cometidas/jogo" }
+                    },
+                    probabilities: {
+                        winHome: 60,
+                        draw: 25,
+                        winAway: 15,
+                        doubleChance1X: 85,
+                        doubleChanceX2: 40,
+                        btts: 48,
+                        mostShotsTeam: "Palmeiras (67%)",
+                        mostCornersTeam: "Palmeiras (61%)",
+                        mostCardsTeam: "Corinthians (60%)"
+                    },
+                    scoresHt: [
+                        { score: "1 - 0", prob: "38%" },
+                        { score: "0 - 0", prob: "32%" },
+                        { score: "0 - 1", prob: "12%" },
+                        { score: "1 - 1", prob: "10%" },
+                        { score: "2 - 0", prob: "8%" }
+                    ],
+                    scoresFt: [
+                        { score: "2 - 0", prob: "25%" },
+                        { score: "1 - 0", prob: "24%" },
+                        { score: "1 - 1", prob: "18%" },
+                        { score: "2 - 1", prob: "15%" },
+                        { score: "3 - 0", prob: "9%" }
+                    ],
+                    homeLast10: generateLast10("Palmeiras", true),
+                    awayLast10: generateLast10("Corinthians", false)
+                },
+                {
+                    id: "m4",
+                    league: "La Liga",
+                    homeTeam: "Real Madrid",
+                    awayTeam: "Barcelona",
+                    homeLogo: "👑",
+                    awayLogo: "🔵🔴",
+                    stadium: "Santiago Bernabéu, Madri",
+                    time: "16:00",
+                    stats: {
+                        goals: { home: 2.4, away: 2.2 },
+                        goalsHt: { home: 1.1, away: 1.0 },
+                        corners: { home: 6.8, away: 6.5 },
+                        cornersHt: { home: 3.5, away: 3.4 },
+                        cards: { home: 2.1, away: 2.3 },
+                        cardsHt: { home: 0.8, away: 0.9 },
+                        shotsOnTargetHt: { home: 4.5, away: 4.3 },
+                        totalShotsHt: { home: 9.1, away: 8.8 }
+                    },
+                    players: {
+                        mostShots: { name: "Kylian Mbappé (Real Madrid)", detail: "Média de 3.5 chutes à gol/jogo" },
+                        mostTackles: { name: "Aurélien Tchouaméni (Real Madrid)", detail: "Média de 3.9 desarmes/jogo" },
+                        mostFouls: { name: "Gavi (Barcelona)", detail: "Média de 2.8 faltas cometidas/jogo" }
+                    },
+                    probabilities: {
+                        winHome: 48,
+                        draw: 26,
+                        winAway: 26,
+                        doubleChance1X: 74,
+                        doubleChanceX2: 52,
+                        btts: 72,
+                        mostShotsTeam: "Real Madrid (53%)",
+                        mostCornersTeam: "Empate técnico (50%)",
+                        mostCardsTeam: "Barcelona (52%)"
+                    },
+                    scoresHt: [
+                        { score: "1 - 1", prob: "30%" },
+                        { score: "1 - 0", prob: "26%" },
+                        { score: "0 - 1", prob: "22%" },
+                        { score: "0 - 0", prob: "12%" },
+                        { score: "2 - 0", prob: "10%" }
+                    ],
+                    scoresFt: [
+                        { score: "2 - 2", prob: "22%" },
+                        { score: "2 - 1", prob: "20%" },
+                        { score: "1 - 2", prob: "18%" },
+                        { score: "1 - 1", prob: "16%" },
+                        { score: "3 - 2", prob: "12%" }
+                    ],
+                    homeLast10: generateLast10("Real Madrid", true),
+                    awayLast10: generateLast10("Barcelona", false)
+                },
+                {
+                    id: "m5",
+                    league: "MLS",
+                    homeTeam: "Inter Miami",
+                    awayTeam: "LA Galaxy",
+                    homeLogo: "🩷",
+                    awayLogo: "💛",
+                    stadium: "Chase Stadium, Florida",
+                    time: "20:30",
+                    stats: {
+                        goals: { home: 2.3, away: 1.9 },
+                        goalsHt: { home: 1.2, away: 0.9 },
+                        corners: { home: 5.9, away: 5.8 },
+                        cornersHt: { home: 3.0, away: 2.9 },
+                        cards: { home: 1.9, away: 2.2 },
+                        cardsHt: { home: 0.7, away: 0.9 },
+                        shotsOnTargetHt: { home: 4.2, away: 3.6 },
+                        totalShotsHt: { home: 8.1, away: 7.4 }
+                    },
+                    players: {
+                        mostShots: { name: "Lionel Messi (Inter Miami)", detail: "Média de 3.2 chutes à gol/jogo" },
+                        mostTackles: { name: "Sergio Busquets (Inter Miami)", detail: "Média de 3.5 desarmes/jogo" },
+                        mostFouls: { name: "Mark Delgado (LA Galaxy)", detail: "Média de 2.5 faltas cometidas/jogo" }
+                    },
+                    probabilities: {
+                        winHome: 55,
+                        draw: 24,
+                        winAway: 21,
+                        doubleChance1X: 79,
+                        doubleChanceX2: 45,
+                        btts: 68,
+                        mostShotsTeam: "Inter Miami (60%)",
+                        mostCornersTeam: "Inter Miami (53%)",
+                        mostCardsTeam: "LA Galaxy (54%)"
+                    },
+                    scoresHt: [
+                        { score: "1 - 1", prob: "28%" },
+                        { score: "1 - 0", prob: "27%" },
+                        { score: "0 - 1", prob: "18%" },
+                        { score: "2 - 0", prob: "15%" },
+                        { score: "0 - 0", prob: "12%" }
+                    ],
+                    scoresFt: [
+                        { score: "2 - 1", prob: "24%" },
+                        { score: "2 - 2", prob: "20%" },
+                        { score: "3 - 1", prob: "18%" },
+                        { score: "1 - 1", prob: "15%" },
+                        { score: "2 - 0", prob: "12%" }
+                    ],
+                    homeLast10: generateLast10("Inter Miami", true),
+                    awayLast10: generateLast10("LA Galaxy", false)
+                }
+            ],
+            "2026-09-13": [
+                {
+                    id: "m6",
+                    league: "Saudi Pro League",
+                    homeTeam: "Al Nassr",
+                    awayTeam: "Al Hilal",
+                    homeLogo: "🟡🔵",
+                    awayLogo: "🔵⚪",
+                    stadium: "Al-Awwal Park, Riade",
+                    time: "15:00",
+                    stats: {
+                        goals: { home: 2.6, away: 2.8 },
+                        goalsHt: { home: 1.3, away: 1.4 },
+                        corners: { home: 7.2, away: 7.5 },
+                        cornersHt: { home: 3.7, away: 3.9 },
+                        cards: { home: 2.0, away: 2.1 },
+                        cardsHt: { home: 0.8, away: 0.8 },
+                        shotsOnTargetHt: { home: 4.6, away: 5.0 },
+                        totalShotsHt: { home: 9.2, away: 9.8 }
+                    },
+                    players: {
+                        mostShots: { name: "Cristiano Ronaldo (Al Nassr)", detail: "Média de 3.8 chutes à gol/jogo" },
+                        mostTackles: { name: "Ruben Neves (Al Hilal)", detail: "Média de 4.0 desarmes/jogo" },
+                        mostFouls: { name: "Ali Al-Bulaihi (Al Hilal)", detail: "Média de 2.8 faltas cometidas/jogo" }
+                    },
+                    probabilities: {
+                        winHome: 45,
+                        draw: 25,
+                        winAway: 30,
+                        doubleChance1X: 70,
+                        doubleChanceX2: 55,
+                        btts: 75,
+                        mostShotsTeam: "Al Hilal (52%)",
+                        mostCornersTeam: "Al Hilal (53%)",
+                        mostCardsTeam: "Al Nassr (51%)"
+                    },
+                    scoresHt: [
+                        { score: "1 - 1", prob: "32%" },
+                        { score: "0 - 1", prob: "25%" },
+                        { score: "1 - 0", prob: "24%" },
+                        { score: "2 - 1", prob: "10%" },
+                        { score: "0 - 0", prob: "9%" }
+                    ],
+                    scoresFt: [
+                        { score: "2 - 2", prob: "24%" },
+                        { score: "1 - 2", prob: "21%" },
+                        { score: "2 - 1", prob: "19%" },
+                        { score: "3 - 2", prob: "16%" },
+                        { score: "1 - 1", prob: "10%" }
+                    ],
+                    homeLast10: generateLast10("Al Nassr", true),
+                    awayLast10: generateLast10("Al Hilal", false)
+                },
+                {
+                    id: "m7",
+                    league: "Egyptian Premier League",
+                    homeTeam: "Al Ahly",
+                    awayTeam: "Zamalek",
+                    homeLogo: "🔴",
+                    awayLogo: "⚪🔴",
+                    stadium: "Cairo International Stadium, Cairo",
+                    time: "19:00",
+                    stats: {
+                        goals: { home: 1.8, away: 1.4 },
+                        goalsHt: { home: 0.8, away: 0.6 },
+                        corners: { home: 6.0, away: 5.2 },
+                        cornersHt: { home: 3.1, away: 2.6 },
+                        cards: { home: 2.8, away: 3.3 },
+                        cardsHt: { home: 1.2, away: 1.5 },
+                        shotsOnTargetHt: { home: 3.4, away: 2.8 },
+                        totalShotsHt: { home: 7.0, away: 6.0 }
+                    },
+                    players: {
+                        mostShots: { name: "Percy Tau (Al Ahly)", detail: "Média de 2.1 chutes à gol/jogo" },
+                        mostTackles: { name: "Marawan Attia (Al Ahly)", detail: "Média de 4.4 desarmes/jogo" },
+                        mostFouls: { name: "Hamza Mathlouthi (Zamalek)", detail: "Média de 3.2 faltas cometidas/jogo" }
+                    },
+                    probabilities: {
+                        winHome: 56,
+                        draw: 28,
+                        winAway: 16,
+                        doubleChance1X: 84,
+                        doubleChanceX2: 44,
+                        btts: 46,
+                        mostShotsTeam: "Al Ahly (62%)",
+                        mostCornersTeam: "Al Ahly (58%)",
+                        mostCardsTeam: "Zamalek (61%)"
+                    },
+                    scoresHt: [
+                        { score: "1 - 0", prob: "40%" },
+                        { score: "0 - 0", prob: "35%" },
+                        { score: "0 - 1", prob: "12%" },
+                        { score: "1 - 1", prob: "8%" },
+                        { score: "2 - 0", prob: "5%" }
+                    ],
+                    scoresFt: [
+                        { score: "1 - 0", prob: "28%" },
+                        { score: "2 - 0", prob: "24%" },
+                        { score: "1 - 1", prob: "22%" },
+                        { score: "2 - 1", prob: "16%" },
+                        { score: "0 - 0", prob: "10%" }
+                    ],
+                    homeLast10: generateLast10("Al Ahly", true),
+                    awayLast10: generateLast10("Zamalek", false)
+                }
+            ]
+        };
+
+        function generateLast10(teamName, isHome) {
+            const results = ["V", "E", "D", "V", "V", "D", "E", "V", "V", "E"];
+            const scoresPool = ["2-1", "1-0", "1-1", "0-2", "3-1", "0-0", "2-2", "1-2", "3-0", "1-3"];
+            const opponents = ["Rival A", "Rival B", "Rival C", "Rival D", "Rival E", "Rival F", "Rival G", "Rival H", "Rival I", "Rival J"];
+            
+            let list = [];
+            for (let i = 0; i < 10; i++) {
+                list.push({
+                    round: `Rodada ${10 - i}`,
+                    opponent: opponents[i],
+                    result: results[i],
+                    score: scoresPool[i],
+                    location: i % 2 === 0 ? "Casa" : "Fora"
+                });
+            }
+            return list;
+        }
+
+        let currentDate = "2026-09-12";
+        let selectedLeagueFilter = "ALL";
+        let activeMatch = null;
+
+        window.onload = function() {
+            renderDateTabs();
+            renderLeagueChips();
+            renderMatches();
+        };
+
+        function resetView() {
+            activeMatch = null;
+            document.getElementById('match-detail-section').classList.add('hidden');
+            document.getElementById('matches-section').classList.remove('hidden');
+            renderMatches();
+        }
+
+        function renderDateTabs() {
+            const container = document.getElementById('date-tabs');
+            const dates = ["2026-09-11", "2026-09-12", "2026-09-13"];
+            const dateLabels = {
+                "2026-09-11": "Ontem (11/09)",
+                "2026-09-12": "Hoje (12/09)",
+                "2026-09-13": "Amanhã (13/09)"
+            };
+
+            container.innerHTML = dates.map(date => {
+                const active = date === currentDate;
+                return `
+                    <button onclick="changeDate('${date}')" class="px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition border ${active ? 'bg-brand-600 text-white border-brand-500 shadow-md shadow-brand-600/20' : 'bg-darkbase-900 text-slate-300 border-darkbase-700 hover:bg-darkbase-700'}">
+                        ${dateLabels[date]}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function changeDate(date) {
+            currentDate = date;
+            renderDateTabs();
+            renderMatches();
+        }
+
+        function renderLeagueChips() {
+            const container = document.getElementById('league-chips');
+            let html = `<button onclick="filterLeague('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-medium transition border ${selectedLeagueFilter === 'ALL' ? 'bg-slate-200 text-slate-900 border-slate-300 font-bold' : 'bg-darkbase-900 text-slate-400 border-darkbase-700 hover:bg-darkbase-700'}">Todas as Ligas</button>`;
+
+            for (const [league, info] of Object.entries(leaguesData)) {
+                const active = selectedLeagueFilter === league;
+                html += `
+                    <button onclick="filterLeague('${league}')" class="px-3 py-1.5 rounded-lg text-xs font-medium transition border flex items-center space-x-1.5 ${active ? 'bg-slate-200 text-slate-900 border-slate-300 font-bold' : 'bg-darkbase-900 text-slate-400 border-darkbase-700 hover:bg-darkbase-700'}">
+                        <span>${info.icon}</span>
+                        <span>${league}</span>
+                    </button>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function filterLeague(league) {
+            selectedLeagueFilter = league;
+            renderLeagueChips();
+            renderMatches();
+        }
+
+        function renderMatches() {
+            const grid = document.getElementById('matches-grid');
+            const titleEl = document.getElementById('matches-section-title');
+            const badgeEl = document.getElementById('match-count-badge');
+
+            const dayMatches = matchesDatabase[currentDate] || [];
+            const filtered = selectedLeagueFilter === 'ALL' ? dayMatches : dayMatches.filter(m => m.league === selectedLeagueFilter);
+
+            titleEl.textContent = `Partidas Disponíveis (${currentDate.split('-').reverse().join('/')})`;
+            badgeEl.textContent = `${filtered.length} ${filtered.length === 1 ? 'jogo' : 'jogos'}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center bg-darkbase-800 rounded-2xl border border-darkbase-700">
+                        <i class="fa-solid fa-calendar-xmark text-3xl text-slate-500 mb-3"></i>
+                        <p class="text-sm font-semibold text-slate-300">Nenhuma partida encontrada para esta data e liga.</p>
+                        <p class="text-xs text-slate-500 mt-1">Tente selecionar outra data ou redefinir o filtro de liga.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(match => {
+                const leagueInfo = leaguesData[match.league] || { icon: "⚽", region: "Mundo" };
+                return `
+                    <div onclick="openMatchDetail('${match.id}')" class="bg-darkbase-800 hover:bg-darkbase-750 border border-darkbase-700 hover:border-brand-500/50 rounded-2xl p-5 cursor-pointer transition shadow-xl group flex flex-col justify-between space-y-4 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-brand-500/5 rounded-bl-full pointer-events-none group-hover:bg-brand-500/10 transition"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold px-2.5 py-1 bg-darkbase-900 text-brand-400 border border-darkbase-700 rounded-full flex items-center space-x-1.5">
+                                <span>${leagueInfo.icon}</span>
+                                <span>${match.league}</span>
+                            </span>
+                            <span class="text-xs font-bold text-slate-300 bg-darkbase-900 px-2.5 py-1 rounded-lg border border-darkbase-700">
+                                <i class="fa-regular fa-clock text-brand-400 mr-1"></i> ${match.time} BRT
+                            </span>
+                        </div>
+
+                        <div class="flex items-center justify-between py-2">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <span class="text-2xl">${match.homeLogo}</span>
+                                <span class="font-bold text-sm text-slate-100 group-hover:text-brand-300 transition">${match.homeTeam}</span>
+                            </div>
+                            <span class="text-xs font-extrabold text-slate-500 px-2">VS</span>
+                            <div class="flex items-center space-x-3 flex-1 justify-end">
+                                <span class="font-bold text-sm text-slate-100 group-hover:text-brand-300 transition text-right">${match.awayTeam}</span>
+                                <span class="text-2xl">${match.awayLogo}</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-darkbase-700 flex items-center justify-between text-xs text-slate-400">
+                            <span><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i> ${match.stadium}</span>
+                            <span class="text-brand-400 font-semibold group-hover:translate-x-1 transition flex items-center space-x-1">
+                                <span>Ver Estatísticas</span>
+                                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openMatchDetail(matchId) {
+            let match = null;
+            for (const d in matchesDatabase) {
+                const found = matchesDatabase[d].find(m => m.id === matchId);
+                if (found) {
+                    match = found;
+                    break;
+                }
+            }
+            if (!match) return;
+            activeMatch = match;
+
+            document.getElementById('detail-league-name').textContent = `${leaguesData[match.league]?.icon || ''} ${match.league}`;
+            document.getElementById('detail-home-team').textContent = match.homeTeam;
+            document.getElementById('detail-away-team').textContent = match.awayTeam;
+            document.getElementById('home-logo').textContent = match.homeLogo;
+            document.getElementById('away-logo').textContent = match.awayLogo;
+            document.getElementById('detail-stadium').textContent = match.stadium;
+            document.getElementById('detail-match-time').textContent = `${match.time} BRT (${currentDate.split('-').reverse().join('/')})`;
+            document.getElementById('table-home-name').textContent = match.homeTeam;
+            document.getElementById('table-away-name').textContent = match.awayTeam;
+            document.getElementById('history-home-title').textContent = `Últimos 10 Jogos - ${match.homeTeam}`;
+            document.getElementById('history-away-title').textContent = `Últimos 10 Jogos - ${match.awayTeam}`;
+
+            populateVerticalAverages(match);
+            populatePlayerTendencies(match);
+            populatePredictions(match);
+            populateScores(match);
+            populateHistory(match);
+
+            document.getElementById('matches-section').classList.add('hidden');
+            document.getElementById('match-detail-section').classList.remove('hidden');
+            switchTab('averages');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function populateVerticalAverages(match) {
+            const s = match.stats;
+            const rows = [
+                { label: "Média de Gols (Total)", home: s.goals.home, away: s.goals.away, format: val => val.toFixed(1) },
+                { label: "Média de Gols no 1º Tempo (HT)", home: s.goalsHt.home, away: s.goalsHt.away, format: val => val.toFixed(1) },
+                { label: "Média de Escanteios", home: s.corners.home, away: s.corners.away, format: val => val.toFixed(1) },
+                { label: "Média de Escanteios no 1º Tempo (HT)", home: s.cornersHt.home, away: s.cornersHt.away, format: val => val.toFixed(1) },
+                { label: "Média de Cartões", home: s.cards.home, away: s.cards.away, format: val => val.toFixed(1) },
+                { label: "Média de Cartões no 1º Tempo (HT)", home: s.cardsHt.home, away: s.cardsHt.away, format: val => val.toFixed(1) },
+                { label: "Chutes à Gol no 1º Tempo (HT)", home: s.shotsOnTargetHt.home, away: s.shotsOnTargetHt.away, format: val => val.toFixed(1) },
+                { label: "Finalizações no 1º Tempo (HT)", home: s.totalShotsHt.home, away: s.totalShotsHt.away, format: val => val.toFixed(1) }
+            ];
+
+            const tbody = document.getElementById('vertical-averages-tbody');
+            tbody.innerHTML = rows.map(r => {
+                const homeHigher = r.home > r.away;
+                const awayHigher = r.away > r.home;
+                return `
+                    <tr class="hover:bg-darkbase-700/30 transition">
+                        <td class="py-3 px-3 font-bold text-slate-200 ${homeHigher ? 'text-brand-400' : ''}">${r.format(r.home)} ${homeHigher ? '<i class="fa-solid fa-arrow-up text-[10px] ml-1"></i>' : ''}</td>
+                        <td class="py-3 px-3 text-center font-medium text-slate-400">${r.label}</td>
+                        <td class="py-3 px-3 text-right font-bold text-slate-200 ${awayHigher ? 'text-brand-400' : ''}">${awayHigher ? '<i class="fa-solid fa-arrow-up text-[10px] mr-1"></i>' : ''} ${r.format(r.away)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function populatePlayerTendencies(match) {
+            const p = match.players;
+            const container = document.getElementById('player-tendencies-container');
+            container.innerHTML = `
+                <div class="bg-darkbase-900 p-3.5 rounded-xl border border-darkbase-700 space-y-1">
+                    <span class="text-[11px] font-bold text-brand-400 uppercase tracking-wider block"><i class="fa-solid fa-crosshairs mr-1"></i> Mais Chutes à Gol Tendência</span>
+                    <p class="font-bold text-sm text-white">${p.mostShots.name}</p>
+                    <p class="text-xs text-slate-400">${p.mostShots.detail}</p>
+                </div>
+                <div class="bg-darkbase-900 p-3.5 rounded-xl border border-darkbase-700 space-y-1">
+                    <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block"><i class="fa-solid fa-shield mr-1"></i> Mais Desarmes Tendência</span>
+                    <p class="font-bold text-sm text-white">${p.mostTackles.name}</p>
+                    <p class="text-xs text-slate-400">${p.mostTackles.detail}</p>
+                </div>
+                <div class="bg-darkbase-900 p-3.5 rounded-xl border border-darkbase-700 space-y-1">
+                    <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider block"><i class="fa-solid fa-hand-holding-hand mr-1"></i> Mais Faltas Cometidas Tendência</span>
+                    <p class="font-bold text-sm text-white">${p.mostFouls.name}</p>
+                    <p class="text-xs text-slate-400">${p.mostFouls.detail}</p>
+                </div>
+            `;
+        }
+
+        function populatePredictions(match) {
+            const pr = match.probabilities;
+            
+            const c1x2 = document.getElementById('prob-1x2-container');
+            c1x2.innerHTML = `
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span class="text-slate-300">Vitória ${match.homeTeam} (1)</span>
+                        <span class="text-brand-400">${pr.winHome}%</span>
+                    </div>
+                    <div class="w-full bg-darkbase-900 h-2 rounded-full overflow-hidden">
+                        <div class="bg-brand-500 h-full rounded-full" style="width: ${pr.winHome}%"></div>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span class="text-slate-300">Empate (X)</span>
+                        <span class="text-slate-400">${pr.draw}%</span>
+                    </div>
+                    <div class="w-full bg-darkbase-900 h-2 rounded-full overflow-hidden">
+                        <div class="bg-slate-500 h-full rounded-full" style="width: ${pr.draw}%"></div>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span class="text-slate-300">Vitória ${match.awayTeam} (2)</span>
+                        <span class="text-blue-400">${pr.winAway}%</span>
+                    </div>
+                    <div class="w-full bg-darkbase-900 h-2 rounded-full overflow-hidden">
+                        <div class="bg-blue-500 h-full rounded-full" style="width: ${pr.winAway}%"></div>
+                    </div>
+                </div>
+                <div class="pt-3 border-t border-darkbase-700 grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-darkbase-900 p-2.5 rounded-xl border border-darkbase-700">
+                        <span class="text-[10px] text-slate-400 block font-medium">Dupla Chance 1X</span>
+                        <span class="text-sm font-bold text-emerald-400">${pr.doubleChance1X}%</span>
+                    </div>
+                    <div class="bg-darkbase-900 p-2.5 rounded-xl border border-darkbase-700">
+                        <span class="text-[10px] text-slate-400 block font-medium">Dupla Chance X2</span>
+                        <span class="text-sm font-bold text-emerald-400">${pr.doubleChanceX2}%</span>
+                    </div>
+                </div>
+            `;
+
+            const btts = document.getElementById('btts-container');
+            btts.innerHTML = `
+                <div class="relative w-28 h-28 flex items-center justify-center rounded-full bg-darkbase-900 border-4 border-emerald-500/20 shadow-inner">
+                    <div class="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin" style="animation-duration: 6s;"></div>
+                    <div class="text-center">
+                        <span class="text-2xl font-black text-white">${pr.btts}%</span>
+                        <span class="text-[10px] text-slate-400 uppercase block font-bold">Probabilidade</span>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-300 font-medium">As análises dos últimos 10 jogos indicam forte tendência de que <strong class="text-emerald-400">${pr.btts > 50 ? 'Ambas Equipes Marcam' : 'Nem todas marcam'}</strong> neste confronto.</p>
+            `;
+
+            const dyn = document.getElementById('match-dynamics-container');
+            dyn.innerHTML = `
+                <div class="bg-darkbase-900 p-3 rounded-xl border border-darkbase-700 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-semibold block uppercase">Mais Finalizações</span>
+                        <span class="text-xs font-bold text-white">${pr.mostShotsTeam}</span>
+                    </div>
+                    <i class="fa-solid fa-fire text-amber-400 text-lg"></i>
+                </div>
+                <div class="bg-darkbase-900 p-3 rounded-xl border border-darkbase-700 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-semibold block uppercase">Mais Escanteios</span>
+                        <span class="text-xs font-bold text-white">${pr.mostCornersTeam}</span>
+                    </div>
+                    <i class="fa-solid fa-flag text-blue-400 text-lg"></i>
+                </div>
+                <div class="bg-darkbase-900 p-3 rounded-xl border border-darkbase-700 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-semibold block uppercase">Mais Cartões</span>
+                        <span class="text-xs font-bold text-white">${pr.mostCardsTeam}</span>
+                    </div>
+                    <i class="fa-solid fa-clone text-red-400 text-lg"></i>
+                </div>
+            `;
+        }
+
+        function populateScores(match) {
+            const htList = document.getElementById('ht-scores-list');
+            htList.innerHTML = match.scoresHt.map((item, idx) => `
+                <div class="flex items-center justify-between bg-darkbase-900 px-4 py-3 rounded-xl border border-darkbase-700">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-6 h-6 rounded-lg bg-darkbase-800 text-slate-400 text-xs font-bold flex items-center justify-center border border-darkbase-700">${idx + 1}</span>
+                        <span class="font-bold text-sm text-white">${match.homeTeam} <span class="text-brand-400 font-mono px-2">${item.score}</span> ${match.awayTeam}</span>
+                    </div>
+                    <span class="text-xs font-extrabold text-brand-400 bg-brand-500/10 px-2.5 py-1 rounded-lg border border-brand-500/20">${item.prob}</span>
+                </div>
+            `).join('');
+
+            const ftList = document.getElementById('ft-scores-list');
+            ftList.innerHTML = match.scoresFt.map((item, idx) => `
+                <div class="flex items-center justify-between bg-darkbase-900 px-4 py-3 rounded-xl border border-darkbase-700">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-6 h-6 rounded-lg bg-darkbase-800 text-slate-400 text-xs font-bold flex items-center justify-center border border-darkbase-700">${idx + 1}</span>
+                        <span class="font-bold text-sm text-white">${match.homeTeam} <span class="text-emerald-400 font-mono px-2">${item.score}</span> ${match.awayTeam}</span>
+                    </div>
+                    <span class="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">${item.prob}</span>
+                </div>
+            `).join('');
+        }
+
+        function populateHistory(match) {
+            const renderList = (list) => {
+                return list.map(item => {
+                    let badgeColor = "bg-slate-700 text-slate-300";
+                    if (item.result === "V") badgeColor = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                    if (item.result === "D") badgeColor = "bg-red-500/20 text-red-400 border border-red-500/30";
+                    if (item.result === "E") badgeColor = "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+
+                    return `
+                        <div class="flex items-center justify-between bg-darkbase-900 p-3 rounded-xl border border-darkbase-700 text-xs">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="w-7 h-7 rounded-lg font-bold flex items-center justify-center ${badgeColor}">${item.result}</span>
+                                <div>
+                                    <p class="font-semibold text-slate-200">vs ${item.opponent} <span class="text-[10px] text-slate-400 font-normal">(${item.location})</span></p>
+                                    <p class="text-[10px] text-slate-500">${item.round}</p>
+                                </div>
+                            </div>
+                            <span class="font-mono font-bold text-slate-300 bg-darkbase-800 px-2.5 py-1 rounded-lg border border-darkbase-700">${item.score}</span>
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            document.getElementById('home-last-10-list').innerHTML = renderList(match.homeLast10);
+            document.getElementById('away-last-10-list').innerHTML = renderList(match.awayLast10);
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['averages', 'predictions', 'scores', 'history'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (t === tabName) {
+                    el.classList.remove('hidden');
+                    btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition whitespace-nowrap";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-darkbase-800 text-slate-300 hover:bg-darkbase-700 transition whitespace-nowrap";
+                }
+            });
+        }
+
+        function backToMatches() {
+            document.getElementById('match-detail-section').classList.add('hidden');
+            document.getElementById('matches-section').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
